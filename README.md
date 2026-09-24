@@ -1,20 +1,124 @@
+# BRANDPULSE AI
+
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+  <h3>AI-Powered Brand Strategy & Development Platform</h3>
+  <p>Transform your brand ideas into comprehensive strategies with AI-driven insights</p>
 </div>
 
-# Run and deploy your AI Studio app
+## Overview
 
-This contains everything you need to run your app locally.
+BRANDPULSE AI is an intelligent brand development platform that guides you through a systematic workflow to transform rough brand concepts into comprehensive, actionable strategies. Powered by Google's Gemini AI, it provides strategic insights, market analysis, and creative guidance across multiple development stages.
 
-View your app in AI Studio: https://ai.studio/apps/397156ee-68c5-4959-a192-bee0ec12589a
+## Features
 
-## Run Locally
+- **6-Stage Brand Development Pipeline**: Discover → Position → Shape → Visualize → Challenge → Launch
+- **AI-Powered Strategic Insights**: Real-time market analysis and brand recommendations
+- **Interactive Workspace**: Asymmetric editorial layout with Brand DNA sidebar and AI signals panel
+- **Project Management**: Create, manage, and export multiple brand projects
+- **Demo & Benchmark Projects**: Learn from pre-built examples
+- **Export Capabilities**: Generate comprehensive brand dossiers and strategy documents
 
-**Prerequisites:**  Node.js
+## Tech Stack
 
+- **Frontend**: React 19, TypeScript, Vite
+- **Styling**: Tailwind CSS 4
+- **AI Integration**: Google GenAI SDK (Gemini API)
+- **Backend**: Express.js server
+- **Animations**: Motion (Framer Motion)
+- **Icons**: Lucide React
+- **Package Manager**: Bun
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Prerequisites
+
+- Node.js (v18+) or Bun
+- Google Gemini API Key
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Tanya-garg10/BRANDPULSE-AI.git
+   cd BRANDPULSE-AI
+   ```
+
+2. Install dependencies:
+   ```bash
+   # Using npm
+   npm install
+   
+   # Or using bun
+   bun install
+   ```
+
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your Gemini API key to `.env`:
+   ```
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+## Running the Application
+
+Start the development server:
+```bash
+# Using npm
+npm run dev
+
+# Or using bun
+bun run dev
+```
+
+The application will be available at `http://localhost:3000`
+
+## Build for Production
+
+```bash
+# Using npm
+npm run build
+
+# Or using bun
+bun run build
+```
+
+## Project Structure
+
+```
+BRANDPULSE-AI/
+├── src/
+│   ├── components/        # React components
+│   │   ├── stages/       # Workflow stage components
+│   │   ├── AiSignalsPanel.tsx
+│   │   ├── BrandDnaSidebar.tsx
+│   │   └── ...
+│   ├── data/             # Sample data and demo projects
+│   ├── services/         # API and storage services
+│   ├── types/            # TypeScript type definitions
+│   ├── App.tsx           # Main application component
+│   └── main.tsx          # Entry point
+├── server.ts             # Express server
+├── index.html            # HTML template
+└── package.json          # Dependencies and scripts
+```
+
+## Workflow Stages
+
+1. **Discover**: Define your brand concept and initial ideas
+2. **Position**: Analyze market positioning and competitive landscape
+3. **Shape**: Develop brand identity, voice, and personality
+4. **Visualize**: Create visual brand elements and guidelines
+5. **Challenge**: Test and validate your brand strategy
+6. **Launch**: Prepare comprehensive launch kits and go-to-market strategies
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+For issues and questions, please open an issue on the GitHub repository.
