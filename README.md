@@ -1,6 +1,5 @@
-# BRANDPULSE AI
-
 <div align="center">
+  <h1>BRANDPULSE AI</h1>
   <h3>AI-Powered Brand Strategy & Development Platform</h3>
   <p>Transform your brand ideas into comprehensive strategies with AI-driven insights</p>
 </div>
