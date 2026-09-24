@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenAI } from '@google/genai';
+import OpenAI from 'openai';
 
 dotenv.config();
 
@@ -14,35 +14,30 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// Helper to initialize Gemini SDK safely
-function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
+// Helper to initialize OpenAI SDK safely
+function getOpenAIClient(): OpenAI | null {
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return null;
   }
-  return new GoogleGenAI({
+  return new OpenAI({
     apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
   });
 }
 
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response) => {
-  const hasKey = Boolean(process.env.GEMINI_API_KEY);
+  const hasKey = Boolean(process.env.OPENAI_API_KEY);
   res.json({
     status: 'ok',
-    hasGeminiKey: hasKey,
-    model: 'gemini-3.8-flash (with gemini-3.1-flash-lite fallback)',
+    hasOpenAIKey: hasKey,
+    model: 'gpt-4o (with gpt-4o-mini fallback)',
     timestamp: new Date().toISOString(),
   });
 });
 
 // Clean JSON response helper from model text
-function parseGeminiJson<T>(rawText: string | undefined, fallback: T): T {
+function parseOpenAIJson<T>(rawText: string | undefined, fallback: T): T {
   if (!rawText) return fallback;
   try {
     let clean = rawText.trim();
@@ -53,55 +48,60 @@ function parseGeminiJson<T>(rawText: string | undefined, fallback: T): T {
     }
     return JSON.parse(clean) as T;
   } catch (err) {
-    console.error('Failed to parse JSON from Gemini response:', err, rawText);
+    console.error('Failed to parse JSON from OpenAI response:', err, rawText);
     return fallback;
   }
 }
 
-// Resilient Gemini caller with automatic retry & model fallback on 503 (high demand) / 429
-async function generateGeminiContentWithResilience(
-  ai: GoogleGenAI,
+// Resilient OpenAI caller with automatic retry & model fallback on rate limits
+async function generateOpenAIContentWithResilience(
+  ai: OpenAI,
   prompt: string,
   options?: {
-    responseMimeType?: string;
     temperature?: number;
   }
 ): Promise<string | null> {
-  // Candidate models in priority order according to skill guidelines:
-  // 1. gemini-3.8-flash (primary text model)
-  // 2. gemini-3.1-flash-lite (fast lightweight alternative)
-  // 3. gemini-flash-latest (official alias)
-  const candidateModels = ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+  // Candidate models in priority order:
+  // 1. gpt-4o (primary model)
+  // 2. gpt-4o-mini (fast lightweight alternative)
+  const candidateModels = ['gpt-4o', 'gpt-4o-mini'];
   let lastError: any = null;
 
   for (const model of candidateModels) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const response = await ai.models.generateContent({
+        const response = await ai.chat.completions.create({
           model,
-          contents: prompt,
-          config: {
-            responseMimeType: options?.responseMimeType || 'application/json',
-            temperature: options?.temperature ?? 0.7,
-          },
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a helpful assistant that responds with valid JSON only.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          response_format: { type: 'json_object' },
+          temperature: options?.temperature ?? 0.7,
         });
 
-        if (response && response.text) {
-          return response.text;
+        if (response && response.choices && response.choices[0] && response.choices[0].message) {
+          return response.choices[0].message.content || null;
         }
       } catch (err: any) {
         lastError = err;
         const msg = err?.message || String(err);
         const isTransient =
-          msg.includes('503') ||
-          msg.includes('high demand') ||
-          msg.includes('UNAVAILABLE') ||
           msg.includes('429') ||
-          msg.includes('RESOURCE_EXHAUSTED') ||
-          msg.includes('overloaded') ||
-          msg.includes('500');
+          msg.includes('rate_limit') ||
+          msg.includes('Rate limit') ||
+          msg.includes('500') ||
+          msg.includes('502') ||
+          msg.includes('503') ||
+          msg.includes('timeout');
 
-        console.warn(`[Gemini Resilience] ${model} (attempt ${attempt + 1}) encountered: ${msg.slice(0, 120)}`);
+        console.warn(`[OpenAI Resilience] ${model} (attempt ${attempt + 1}) encountered: ${msg.slice(0, 120)}`);
 
         if (isTransient && attempt === 0) {
           // Quick exponential pause before second attempt on same model
@@ -114,7 +114,7 @@ async function generateGeminiContentWithResilience(
     }
   }
 
-  console.warn('[Gemini Resilience] All live model candidates temporarily unavailable; using intelligent domain fallback.');
+  console.warn('[OpenAI Resilience] All live model candidates temporarily unavailable; using intelligent domain fallback.');
   return null;
 }
 
@@ -174,7 +174,7 @@ app.post('/api/discover-question', async (req: Request, res: Response) => {
   const fallback = getFallbackInterviewQuestion(project, questionIndex);
 
   try {
-    const ai = getGeminiClient();
+    const ai = getOpenAIClient();
 
     if (!ai) {
       return res.json({
@@ -208,7 +208,7 @@ Return ONLY a JSON object in this exact schema:
 }
 `;
 
-    const rawText = await generateGeminiContentWithResilience(ai, prompt);
+    const rawText = await generateOpenAIContentWithResilience(ai, prompt);
     if (!rawText) {
       return res.json({
         success: true,
@@ -218,7 +218,7 @@ Return ONLY a JSON object in this exact schema:
       });
     }
 
-    const parsed = parseGeminiJson(rawText, fallback);
+    const parsed = parseOpenAIJson(rawText, fallback);
     res.json({ success: true, data: parsed });
   } catch (error: any) {
     console.warn('Recovered discover-question via fallback:', error?.message);
@@ -244,7 +244,7 @@ app.post('/api/discover-brief', async (req: Request, res: Response) => {
   };
 
   try {
-    const ai = getGeminiClient();
+    const ai = getOpenAIClient();
 
     if (!ai) {
       return res.json({
@@ -280,7 +280,7 @@ Return a structured JSON object:
 }
 `;
 
-    const rawText = await generateGeminiContentWithResilience(ai, prompt);
+    const rawText = await generateOpenAIContentWithResilience(ai, prompt);
     if (!rawText) {
       return res.json({
         success: true,
@@ -289,7 +289,7 @@ Return a structured JSON object:
       });
     }
 
-    const parsed = parseGeminiJson(rawText, fallbackBrief);
+    const parsed = parseOpenAIJson(rawText, fallbackBrief);
     res.json({ success: true, data: parsed });
   } catch (error: any) {
     console.warn('Recovered discover-brief via fallback:', error?.message);
@@ -339,7 +339,7 @@ app.post('/api/positioning', async (req: Request, res: Response) => {
   ];
 
   try {
-    const ai = getGeminiClient();
+    const ai = getOpenAIClient();
 
     if (!ai) {
       return res.json({
@@ -371,7 +371,7 @@ For each direction, provide:
 Return ONLY a JSON array of 3 objects matching this schema.
 `;
 
-    const rawText = await generateGeminiContentWithResilience(ai, prompt);
+    const rawText = await generateOpenAIContentWithResilience(ai, prompt);
     if (!rawText) {
       return res.json({
         success: true,
@@ -380,7 +380,7 @@ Return ONLY a JSON array of 3 objects matching this schema.
       });
     }
 
-    const parsed = parseGeminiJson(rawText, fallbackPositions);
+    const parsed = parseOpenAIJson(rawText, fallbackPositions);
     res.json({ success: true, data: parsed });
   } catch (error: any) {
     console.warn('Recovered positioning via fallback:', error?.message);
@@ -493,7 +493,7 @@ app.post('/api/shape', async (req: Request, res: Response) => {
   };
 
   try {
-    const ai = getGeminiClient();
+    const ai = getOpenAIClient();
 
     if (!ai) {
       return res.json({
@@ -525,7 +525,7 @@ ${JSON.stringify(selectedPositioning, null, 2)}
 Return ONLY a JSON object matching this schema.
 `;
 
-    const rawText = await generateGeminiContentWithResilience(ai, prompt);
+    const rawText = await generateOpenAIContentWithResilience(ai, prompt);
     if (!rawText) {
       return res.json({
         success: true,
@@ -534,7 +534,7 @@ Return ONLY a JSON object matching this schema.
       });
     }
 
-    const parsed = parseGeminiJson(rawText, fallbackShape);
+    const parsed = parseOpenAIJson(rawText, fallbackShape);
     res.json({ success: true, data: parsed });
   } catch (error: any) {
     console.warn('Recovered shape via fallback:', error?.message);
@@ -590,7 +590,7 @@ app.post('/api/visualize', async (req: Request, res: Response) => {
   };
 
   try {
-    const ai = getGeminiClient();
+    const ai = getOpenAIClient();
 
     if (!ai) {
       return res.json({
@@ -651,7 +651,7 @@ Return ONLY a JSON object matching this schema:
 }
 `;
 
-    const rawText = await generateGeminiContentWithResilience(ai, prompt);
+    const rawText = await generateOpenAIContentWithResilience(ai, prompt);
     if (!rawText) {
       return res.json({
         success: true,
@@ -660,7 +660,7 @@ Return ONLY a JSON object matching this schema:
       });
     }
 
-    const parsed = parseGeminiJson(rawText, fallbackVisuals);
+    const parsed = parseOpenAIJson(rawText, fallbackVisuals);
     res.json({ success: true, data: parsed });
   } catch (error: any) {
     console.warn('Recovered visualize via fallback:', error?.message);
@@ -706,7 +706,7 @@ app.post('/api/challenge', async (req: Request, res: Response) => {
   ];
 
   try {
-    const ai = getGeminiClient();
+    const ai = getOpenAIClient();
 
     if (!ai) {
       return res.json({
@@ -737,7 +737,7 @@ Categorize each strictly as: "CRITICAL" | "WARNING" | "SUGGESTION".
 Return ONLY a JSON array of issue objects.
 `;
 
-    const rawText = await generateGeminiContentWithResilience(ai, prompt);
+    const rawText = await generateOpenAIContentWithResilience(ai, prompt);
     if (!rawText) {
       return res.json({
         success: true,
@@ -746,7 +746,7 @@ Return ONLY a JSON array of issue objects.
       });
     }
 
-    const parsed = parseGeminiJson(rawText, fallbackIssues);
+    const parsed = parseOpenAIJson(rawText, fallbackIssues);
     res.json({ success: true, data: parsed });
   } catch (error: any) {
     console.warn('Recovered challenge via fallback:', error?.message);
@@ -768,7 +768,7 @@ app.post('/api/battle', async (req: Request, res: Response) => {
   };
 
   try {
-    const ai = getGeminiClient();
+    const ai = getOpenAIClient();
 
     if (!ai) {
       return res.json({
@@ -799,7 +799,7 @@ Return ONLY a JSON object matching:
 }
 `;
 
-    const rawText = await generateGeminiContentWithResilience(ai, prompt);
+    const rawText = await generateOpenAIContentWithResilience(ai, prompt);
     if (!rawText) {
       return res.json({
         success: true,
@@ -808,7 +808,7 @@ Return ONLY a JSON object matching:
       });
     }
 
-    const parsed = parseGeminiJson(rawText, fallbackBattle);
+    const parsed = parseOpenAIJson(rawText, fallbackBattle);
     res.json({ success: true, data: parsed });
   } catch (error: any) {
     console.warn('Recovered battle via fallback:', error?.message);
@@ -856,7 +856,7 @@ app.post('/api/validate', async (req: Request, res: Response) => {
   };
 
   try {
-    const ai = getGeminiClient();
+    const ai = getOpenAIClient();
 
     if (!ai) {
       return res.json({
@@ -904,7 +904,7 @@ Return ONLY a JSON object:
 }
 `;
 
-    const rawText = await generateGeminiContentWithResilience(ai, prompt);
+    const rawText = await generateOpenAIContentWithResilience(ai, prompt);
     if (!rawText) {
       return res.json({
         success: true,
@@ -913,7 +913,7 @@ Return ONLY a JSON object:
       });
     }
 
-    const parsed = parseGeminiJson(rawText, fallbackConsistency);
+    const parsed = parseOpenAIJson(rawText, fallbackConsistency);
     res.json({ success: true, data: parsed });
   } catch (error: any) {
     console.warn('Recovered validate via fallback:', error?.message);
@@ -956,7 +956,7 @@ app.post('/api/launch-kit', async (req: Request, res: Response) => {
   };
 
   try {
-    const ai = getGeminiClient();
+    const ai = getOpenAIClient();
 
     if (!ai) {
       return res.json({
@@ -1009,7 +1009,7 @@ Return ONLY a JSON object matching this schema:
 }
 `;
 
-    const rawText = await generateGeminiContentWithResilience(ai, prompt);
+    const rawText = await generateOpenAIContentWithResilience(ai, prompt);
     if (!rawText) {
       return res.json({
         success: true,
@@ -1018,7 +1018,7 @@ Return ONLY a JSON object matching this schema:
       });
     }
 
-    const parsed = parseGeminiJson(rawText, fallbackLaunchKit);
+    const parsed = parseOpenAIJson(rawText, fallbackLaunchKit);
     res.json({ success: true, data: parsed });
   } catch (error: any) {
     console.warn('Recovered launch-kit via fallback:', error?.message);

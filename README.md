@@ -6,7 +6,7 @@
 
 ## Overview
 
-BRANDPULSE AI is an intelligent brand development platform that guides you through a systematic workflow to transform rough brand concepts into comprehensive, actionable strategies. Powered by Google's Gemini AI, it provides strategic insights, market analysis, and creative guidance across multiple development stages.
+BRANDPULSE AI is an intelligent brand development platform that guides you through a systematic workflow to transform rough brand concepts into comprehensive, actionable strategies. Powered by OpenAI's GPT models, it provides strategic insights, market analysis, and creative guidance across multiple development stages.
 
 ## Features
 
@@ -21,7 +21,7 @@ BRANDPULSE AI is an intelligent brand development platform that guides you throu
 
 - **Frontend**: React 19, TypeScript, Vite
 - **Styling**: Tailwind CSS 4
-- **AI Integration**: Google GenAI SDK (Gemini API)
+- **AI Integration**: OpenAI SDK (GPT-4)
 - **Backend**: Express.js server
 - **Animations**: Motion (Framer Motion)
 - **Icons**: Lucide React
@@ -30,7 +30,7 @@ BRANDPULSE AI is an intelligent brand development platform that guides you throu
 ## Prerequisites
 
 - Node.js (v18+) or Bun
-- Google Gemini API Key
+- OpenAI API Key
 
 ## Installation
 
@@ -51,11 +51,14 @@ BRANDPULSE AI is an intelligent brand development platform that guides you throu
 
 3. Set up environment variables:
    ```bash
+   # On Linux/Mac
    cp .env.example .env
+   # On Windows
+   copy .env.example .env
    ```
-   Add your Gemini API key to `.env`:
+   Add your OpenAI API key to `.env`:
    ```
-   GEMINI_API_KEY=your_api_key_here
+   OPENAI_API_KEY=your_api_key_here
    ```
 
 ## Running the Application
