@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-serif: 'Newsreader', Georgia, serif;
+    --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #F7F6F2;
+    color: #111111;
+    background-image: 
+      radial-gradient(rgba(17, 17, 17, 0.035) 1px, transparent 1px);
+    background-size: 28px 28px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.font-editorial {
+  font-family: var(--font-serif);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-tech-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Luxury Editorial Surface Cards - Crisp 1px #D9D9D2 Borders */
+.editorial-sheet {
+  background-color: #FFFFFF;
+  border: 1px solid #D9D9D2;
+}
+
+.editorial-panel {
+  background-color: #F7F6F2;
+  border: 1px solid #D9D9D2;
+}
+
+.editorial-panel-active {
+  background-color: #FFFFFF;
+  border: 1px solid #3157FF;
+}
+
+/* Subtle architectural grid line background */
+.tech-grid {
+  background-image: 
+    linear-gradient(to right, rgba(17, 17, 17, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(17, 17, 17, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Minimal precise scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #F7F6F2;
+}
+::-webkit-scrollbar-thumb {
+  background: #D9D9D2;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3157FF;
+}
+
+/* Chrome Orb slow spin animation */
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+
+/* Luxury Magazine Page Transition */
+.page-fade-in {
+  animation: pageFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Clean print styling */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #111111 !important;
+    background-image: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

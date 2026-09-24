@@ -1,0 +1,6 @@
+{
+  "name": "BrandPulse AI",
+  "description": "AI-powered brand intelligence studio that stress-tests and transforms rough ideas into launch-ready brand systems.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
