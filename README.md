@@ -84,6 +84,172 @@ npm run build
 bun run build
 ```
 
+## Deployment
+
+### Option 1: Vercel (Recommended)
+
+1. **Install Vercel CLI**:
+   ```bash
+   npm install -g vercel
+   ```
+
+2. **Build the project**:
+   ```bash
+   npm run build
+   ```
+
+3. **Deploy to Vercel**:
+   ```bash
+   vercel
+   ```
+
+4. **Set environment variables** in Vercel dashboard:
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `NODE_ENV`: `production`
+
+5. **Deploy production**:
+   ```bash
+   vercel --prod
+   ```
+
+### Option 2: Railway
+
+1. **Install Railway CLI**:
+   ```bash
+   npm install -g @railway/cli
+   ```
+
+2. **Login to Railway**:
+   ```bash
+   railway login
+   ```
+
+3. **Initialize project**:
+   ```bash
+   railway init
+   ```
+
+4. **Deploy**:
+   ```bash
+   railway up
+   ```
+
+5. **Add environment variables** in Railway dashboard:
+   - `OPENAI_API_KEY`: Your OpenAI API key
+   - `PORT`: `3000`
+   - `NODE_ENV`: `production`
+
+### Option 3: Render
+
+1. **Create a `render.yaml` file**:
+   ```yaml
+   services:
+     - type: web
+       name: brandpulse-ai
+       env: node
+       buildCommand: npm install && npm run build
+       startCommand: npm start
+       envVars:
+         - key: NODE_ENV
+           value: production
+         - key: PORT
+           value: 3000
+   ```
+
+2. **Push to GitHub** and connect your repository to Render
+
+3. **Add environment variables** in Render dashboard:
+   - `OPENAI_API_KEY`: Your OpenAI API key
+
+### Option 4: Docker Deployment
+
+1. **Create a `Dockerfile`**:
+   ```dockerfile
+   FROM node:18-alpine
+   WORKDIR /app
+   COPY package*.json ./
+   RUN npm install
+   COPY . .
+   RUN npm run build
+   EXPOSE 3000
+   CMD ["npm", "start"]
+   ```
+
+2. **Build Docker image**:
+   ```bash
+   docker build -t brandpulse-ai .
+   ```
+
+3. **Run container**:
+   ```bash
+   docker run -p 3000:3000 -e OPENAI_API_KEY=your_key brandpulse-ai
+   ```
+
+### Option 5: Traditional VPS (DigitalOcean, AWS, etc.)
+
+1. **SSH into your server**
+
+2. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Tanya-garg10/BRANDPULSE-AI.git
+   cd BRANDPULSE-AI
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+4. **Build the project**:
+   ```bash
+   npm run build
+   ```
+
+5. **Set up environment variables**:
+   ```bash
+   echo "OPENAI_API_KEY=your_api_key_here" > .env
+   echo "NODE_ENV=production" >> .env
+   echo "PORT=3000" >> .env
+   ```
+
+6. **Install PM2 for process management**:
+   ```bash
+   npm install -g pm2
+   ```
+
+7. **Start the application with PM2**:
+   ```bash
+   pm2 start npm --name "brandpulse-ai" -- start
+   pm2 save
+   pm2 startup
+   ```
+
+8. **Set up Nginx reverse proxy** (recommended):
+   ```nginx
+   server {
+       listen 80;
+       server_name your-domain.com;
+
+       location / {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   ```
+
+### Environment Variables Required
+
+Regardless of deployment method, ensure these environment variables are set:
+
+- `OPENAI_API_KEY`: Your OpenAI API key (required)
+- `NODE_ENV`: Set to `production` for production deployments
+- `PORT`: Port number (default: 3000)
+- `APP_URL`: Your application's URL (optional, for self-referential links)
+
 ## Project Structure
 
 ```
